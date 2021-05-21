@@ -109,9 +109,7 @@ class LiveTranscript {
    * Return text to be used in the message embed.
    */
   private refreshText() {
-    const text = `${
-      this.dataArray.map(data => data.user.id !== this.client.id ? `**__${data.user.tag}__**\n${data.transcript}\n\n` : "")
-    }`;
+    const text = this.dataArray.map(data => data.user.id !== this.client.id ? `**__${data.user.tag}__**\n${data.transcript}\n\n` : "").join('');
 
     return text;
   };

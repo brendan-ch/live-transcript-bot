@@ -11,7 +11,7 @@ const joinCommand: ConnectionCommand = {
 
     let connection: Discord.VoiceConnection | null = null;
 
-    if (vc) {
+    if (vc && !vc.members.array().map(member => member.id).includes(message.client.user!.id)) {
       connection = await vc.join();
     };
 
