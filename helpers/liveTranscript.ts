@@ -16,6 +16,7 @@ class LiveTranscript {
    */
   // @ts-ignore
   protected message: Discord.Message;
+  protected messageExists: boolean;
   protected client: Discord.User;
 
   constructor(config: LiveTranscriptConfig) {
@@ -27,6 +28,7 @@ class LiveTranscript {
     });
 
     this.client = config.client;
+    this.messageExists = true;
 
     this.initiate(config.channel);
   };
@@ -124,7 +126,8 @@ class LiveTranscript {
       description: this.refreshText()
     });
 
-    this.message = await channel.send(embed);    
+    this.message = await channel.send(embed);
+    this.messageExists = true;
   };
   
   /**
@@ -136,7 +139,13 @@ class LiveTranscript {
       description: this.refreshText()
     });
 
-    await this.message.edit(embed);
+    try {
+      if (this.messageExists) {
+        await this.message.edit(embed);
+      }
+    } catch(err) {
+      throw new Error(err);
+    }
   };
 
   /**
@@ -145,6 +154,7 @@ class LiveTranscript {
    */
   async destroy() {
     await this.message.delete();
+    this.messageExists = false;
   };
 }
 

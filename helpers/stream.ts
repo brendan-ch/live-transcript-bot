@@ -42,8 +42,13 @@ function handleConnection(connection: Discord.VoiceConnection, liveTranscript: L
             if (transcript) {
               console.log(`${user.tag}: ${transcript}`);
 
-              liveTranscript.addOrUpdateTranscript(user, transcript);
-              liveTranscript.refresh();
+              try {
+                liveTranscript.addOrUpdateTranscript(user, transcript);
+                liveTranscript.refresh();
+              } catch(err) {
+                console.error(err);
+              }
+              
             }
             
           });
