@@ -3,14 +3,15 @@ dotenv.config();
 
 import Discord from 'discord.js';
 import fs from 'fs';
-import { ClientWithCommands, Command } from './typedefs';
+import { ClientWithCommands, Command, ConnectionCommand } from './typedefs';
 import { handleConnection } from './helpers/stream';
+import { LiveTranscript } from './helpers/liveTranscript';
 const client: ClientWithCommands = new Discord.Client();
 
 client.commands = new Discord.Collection();
 
-async function getCommands() {
-  const commands: Array<Command> = [];
+async function getConnectionCommands() {
+  const commands: Array<ConnectionCommand> = [];
 
   // get filenames
   const commandFiles = fs.readdirSync('./dist/commands').filter(fileName => fileName.endsWith('.js'));
@@ -24,12 +25,12 @@ async function getCommands() {
   return commands;
 };
 
-client.on('voiceStateUpdate', function(oldState, newState) {
-  // check if it's bot who joins VC
-  if (newState.connection && newState.member?.id === client.user!.id) {
-    handleConnection(newState.connection);
-  };
-})
+// client.on('voiceStateUpdate', function(oldState, newState) {
+//   // check if it's bot who joins VC
+//   if (newState.connection && newState.member?.id === client.user!.id) {
+//     handleConnection(newState.connection);
+//   };
+// })
 
 client.on('ready', function() {
   // run check for client user
@@ -66,12 +67,23 @@ client.on('message', async function(message) {
 
   // retrieve the command and run execute method on it
   if (command) {
-    command.execute(message, args);
+    const response = await command.execute(message, args);
+
+    if (response && response.connection && response.channel) {
+      // create new LiveTranscript instance
+      const liveTranscript = new LiveTranscript({
+        channel: response.channel,
+        users: response.connection.channel.members.array().map(member => member.user),
+        client: client.user
+      });
+
+      handleConnection(response.connection, liveTranscript);
+    }
   };
 })
 
 // call function to load commands
-getCommands().then(commands => commands.forEach(command => client.commands?.set(command.name, command)));
+getConnectionCommands().then(commands => commands.forEach(command => client.commands?.set(command.name, command)));
 
 // connect to API
 const token = process.env.ACCESS_TOKEN;

@@ -12,6 +12,11 @@ const leaveCommand: ConnectionCommand = {
     if (vc) {
       await vc.leave();
     };
+
+    return {
+      connection: null,
+      channel: message.channel
+    };
   }
 };
 

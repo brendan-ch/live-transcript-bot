@@ -38,7 +38,7 @@ interface Command {
 };
 
 /**
- * Represents a command object, except it contains a function that returns a voice connection.. 
+ * Represents a command object, except it contains a function that returns a voice connection and the channel of the user's message.
  * Contains command information (name, aliases) as well as a method that runs
  * when the command is called.
  */
@@ -64,7 +64,10 @@ interface Command {
    * @param message 
    * @param args 
    */
-  execute(message: MessageWithCommands, args: Array<string>): Promise<void>,
+  execute(message: MessageWithCommands, args: Array<string>): Promise<{
+    connection: Discord.VoiceConnection | null,
+    channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel
+  }>,
 };
 
 /**
@@ -83,4 +86,29 @@ interface ConnectionWrapper {
   connection: Discord.VoiceConnection
 };
 
-export { ClientWithCommands, Command, ConnectionCommand, ConnectionWrapper, StreamWrapper };
+/**
+ * Wraps a user and their corresponding transcript data.
+ */
+interface LiveTranscriptData {
+  user: Discord.User,
+  transcript: string
+};
+
+/**
+ * Configuration for creating a live transcript embed.
+ */
+interface LiveTranscriptConfig {
+  users: Array<Discord.User>,
+  client: Discord.User,
+  channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel
+}
+
+export { 
+  LiveTranscriptConfig,
+  LiveTranscriptData,
+  ClientWithCommands, 
+  Command, 
+  ConnectionCommand, 
+  ConnectionWrapper, 
+  StreamWrapper 
+};

@@ -9,8 +9,15 @@ const joinCommand: ConnectionCommand = {
     const user = message.member;
     const vc = user?.voice.channel;
 
+    let connection: Discord.VoiceConnection | null = null;
+
     if (vc) {
-      const connection = await vc.join();
+      connection = await vc.join();
+    };
+
+    return {
+      connection: connection,
+      channel: message.channel
     };
   }
 };

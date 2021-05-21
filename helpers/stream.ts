@@ -9,7 +9,7 @@ const speechClient = new speech.SpeechClient({
   keyFilename: 'stt-gcloud-key.json'
 });
 
-function handleConnection(connection: Discord.VoiceConnection, liveTranscript?: LiveTranscript) {
+function handleConnection(connection: Discord.VoiceConnection, liveTranscript: LiveTranscript) {
   const promise = new Promise(function(resolve, reject) {
     connection.on('speaking', function(user, speaking) {
       if (speaking.bitfield === 0 || user.bot) {
@@ -39,7 +39,13 @@ function handleConnection(connection: Discord.VoiceConnection, liveTranscript?: 
             return transcribe(newBuffer);
           })
           .then(transcript => {
-            console.log(`${user.tag}: ${transcript}`);
+            if (transcript) {
+              console.log(`${user.tag}: ${transcript}`);
+
+              liveTranscript.addOrUpdateTranscript(user, transcript);
+              liveTranscript.refresh();
+            }
+            
           });
 
         console.log(`Audio stream closed for user ${user.tag}`);
@@ -52,6 +58,8 @@ function handleConnection(connection: Discord.VoiceConnection, liveTranscript?: 
   
     connection.on('disconnect', function(err) {
       console.log(`Bot disconnected from VC ${connection.channel.id}`);
+
+      liveTranscript.destroy();
 
       resolve('Disconnected from VC');
       if (err) console.error(err);
@@ -135,24 +143,18 @@ async function convertAudio(input: Buffer) {
 async function transcribe(buffer: Buffer) {
   try {
     const bytes = buffer.toString('base64');
-    
-    const audio = {
-      content: bytes
-    };
 
-    const config = {
-      encoding: "LINEAR16",
-      sampleRateHertz: 48000,
-      languageCode: 'en-US'
-    };
-
-    const request = {
-      audio: audio,
-      config: config
-    };
-
-    // @ts-ignore
-    const [response] = await speechClient.recognize(request);
+    const [response] = await speechClient.recognize({
+      config: {
+        encoding: 'LINEAR16',
+        sampleRateHertz: 48000,
+        languageCode: 'en-US',
+        enableAutomaticPunctuation: true
+      },
+      audio: {
+        content: bytes
+      }
+    });
     
     // construct transcript
     if (response.results) {
