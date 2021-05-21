@@ -9,7 +9,7 @@ const speechClient = new speech.SpeechClient({
   keyFilename: 'stt-gcloud-key.json'
 });
 
-function handleConnection(connection: Discord.VoiceConnection) {
+function handleConnection(connection: Discord.VoiceConnection, liveTranscript?: LiveTranscript) {
   const promise = new Promise(function(resolve, reject) {
     connection.on('speaking', function(user, speaking) {
       if (speaking.bitfield === 0 || user.bot) {
@@ -22,7 +22,7 @@ function handleConnection(connection: Discord.VoiceConnection) {
         mode: 'pcm'
       });
 
-      let bufferArray = [];
+      let bufferArray: Array<Buffer> = [];
   
       stream.on('error', function(err) {
         console.error(err);
@@ -61,61 +61,61 @@ function handleConnection(connection: Discord.VoiceConnection) {
   return promise;
 };
 
-async function transcribeFileStream(userId: string) {
-  const config = {
-    encoding: "LINEAR16",
-    sampleRateHertz: 48000,
-    languageCode: "en-US"
-  };
+// async function transcribeFileStream(userId: string) {
+//   const config = {
+//     encoding: "LINEAR16",
+//     sampleRateHertz: 48000,
+//     languageCode: "en-US"
+//   };
 
-  const request = {
-    config: config,
-    interimResults: true
-  };
+//   const request = {
+//     config: config,
+//     interimResults: true
+//   };
 
-  // @ts-ignore
-  const recognizeStream = speechClient.streamingRecognize(request)
-    .on('readable', () => {
-      console.log("Receiving data");
-    })
-    .on('error', console.error)
-    .on('data', data => {
-      console.log("Received data");
-      console.log(data);
-      // process.stdout.write(
-      //   data.results[0] && data.results[0].alternatives[0]
-      //     ? `Transcription: ${data.results[0].alternatives[0].transcript}\n`
-      //     : '\n\nReached transcription time limit, press Ctrl+C\n'
-      // )
-    })
+//   // @ts-ignore
+//   const recognizeStream = speechClient.streamingRecognize(request)
+//     .on('readable', () => {
+//       console.log("Receiving data");
+//     })
+//     .on('error', console.error)
+//     .on('data', data => {
+//       console.log("Received data");
+//       console.log(data);
+//       // process.stdout.write(
+//       //   data.results[0] && data.results[0].alternatives[0]
+//       //     ? `Transcription: ${data.results[0].alternatives[0].transcript}\n`
+//       //     : '\n\nReached transcription time limit, press Ctrl+C\n'
+//       // )
+//     })
 
-  fs.createReadStream(userId).pipe(recognizeStream);
-}
+//   fs.createReadStream(userId).pipe(recognizeStream);
+// }
 
-async function transcribeFile(userId: string) {
-  const audio = {
-    content: fs.readFileSync(userId).toString('base64')
-  };
+// async function transcribeFile(userId: string) {
+//   const audio = {
+//     content: fs.readFileSync(userId).toString('base64')
+//   };
 
-  // console.log(audio);
+//   // console.log(audio);
 
-  const [response] = await speechClient.recognize({
-    config: {
-      encoding: 'LINEAR16',
-      sampleRateHertz: 48000,
-      languageCode: 'en-US',
-      model: 'video',
-    },
-    audio: audio
-  });
+//   const [response] = await speechClient.recognize({
+//     config: {
+//       encoding: 'LINEAR16',
+//       sampleRateHertz: 48000,
+//       languageCode: 'en-US',
+//       model: 'video',
+//     },
+//     audio: audio
+//   });
 
-  const transcription = response.results
-    .map(result => result.alternatives[0].transcript)
-    .join('\n');
-  console.log('Transcription: ', transcription);
-};
+//   const transcription = response.results
+//     .map(result => result.alternatives[0].transcript)
+//     .join('\n');
+//   console.log('Transcription: ', transcription);
+// };
 
-async function convertAudio(input) {
+async function convertAudio(input: Buffer) {
   try {
     // stereo to mono channel
     const data = new Int16Array(input)
@@ -155,11 +155,14 @@ async function transcribe(buffer: Buffer) {
     const [response] = await speechClient.recognize(request);
     
     // construct transcript
-    const transcript = response.results
-      .map(result => result.alternatives[0].transcript)
-      .join('\n');
+    if (response.results) {
+      const transcript = response.results
+        .map(result => result.alternatives ? result.alternatives[0].transcript : "")
+        .join('\n');
 
-    return transcript;
+      return transcript;
+    }
+    
   } catch(err) {
     console.error(err);
   }
