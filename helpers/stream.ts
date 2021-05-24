@@ -65,6 +65,8 @@ function handleConnection(connection: Discord.VoiceConnection, liveTranscript: L
 
       liveTranscript.destroy();
 
+      removeLiveTranscript(connection.channel.guild.id);
+
       resolve('Disconnected from VC');
       if (err) console.error(err);
     });

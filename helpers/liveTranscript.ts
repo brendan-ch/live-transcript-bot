@@ -277,7 +277,7 @@ function getLiveTranscripts() {
  * @param serverId 
  */
 function removeLiveTranscript(serverId: string) {
-  const index = liveTranscripts.findIndex(liveTranscript => liveTranscript.message ? liveTranscript.message.guild!.id : null);
+  const index = liveTranscripts.findIndex(liveTranscript => (liveTranscript.message ? liveTranscript.message.guild!.id : null) === serverId);
 
   if (index !== -1) {
     liveTranscripts.splice(index, 1);
