@@ -18,6 +18,10 @@ interface Command {
    */
   name: string,
   /**
+   * Whether the command is admin only.
+   */
+  adminOnly?: boolean,
+  /**
    * Alternative ways the user can call the command.
    */
   aliases?: Array<string>,
@@ -34,7 +38,7 @@ interface Command {
    * @param message 
    * @param args 
    */
-  execute(message: MessageWithCommands, args: Array<string>): Promise<undefined>,
+  execute(message: MessageWithCommands, args: Array<string>): Promise<void>,
 };
 
 /**
@@ -47,6 +51,10 @@ interface Command {
    * The name of the command. `execute` property is run when command name is called.
    */
   name: string,
+  /**
+   * Whether the command is admin only.
+   */
+  adminOnly?: boolean,
   /**
    * Alternative ways the user can call the command.
    */
