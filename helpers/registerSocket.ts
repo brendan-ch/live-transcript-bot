@@ -1,9 +1,9 @@
 import bcrypt from 'bcrypt';
 
 import { Server, Socket } from 'socket.io';
-import { getLiveTranscripts } from './helpers/liveTranscript';
-import { findServer } from './helpers/server';
-import { SocketError } from './typedefs';
+import { getLiveTranscripts } from './liveTranscript';
+import { findServer } from './server';
+import { SocketError } from '../typedefs';
 
 const io = new Server();
 
@@ -23,44 +23,8 @@ function registerSocket(socket: Socket) {
       return;
     }
 
-    // TO-DO: check if server ID matches up with authentication
-    const server = await findServer(serverId, false);
-
-    if (!server) {
-      const error: SocketError = {
-        code: 404,
-        message: "Not found: server not found"
-      }
-
-      socket.emit('error', error);
-
-      return;
-    } else if (!server.enableApi) {
-      const error: SocketError = {
-        code: 403,
-        message: "Forbidden: server has API disabled"
-      }
-
-      socket.emit('error', error);
-
-      return;
-    }
-
-    const matchArray: Array<Promise<boolean>> = server.keys.map(key => {
-      return bcrypt.compare(apiKey, key);
-    })
-
-    const matchResults = await Promise.all(matchArray);
-    if (!matchResults.includes(true)) {
-      const error: SocketError = {
-        code: 401,
-        message: "Unauthorized: API key invalid."
-      };
-
-      socket.emit('error', error);
-
-      return;
-    };
+    const err = await authError(socket, serverId, apiKey);
+    if (err) return;
 
     const liveTranscript = getLiveTranscripts().find(
       transcript => (transcript.message ? transcript.message.guild!.id : null) === serverId
@@ -77,7 +41,7 @@ function registerSocket(socket: Socket) {
 
     console.log(`Socket ${socket.id} subscribing to updates from server ${serverId}`);
 
-    liveTranscript?.addSocket(socket);
+    liveTranscript?.addSocket(socket, apiKey);
   });
 
   socket.on('disconnect', (reason) => {
@@ -101,4 +65,45 @@ function registerConnection() {
   io.listen(3000);
 };
 
-export { registerConnection };
+async function authError(socket: Socket, serverId: string, apiKey: string) {
+  const server = await findServer(serverId, false);
+    if (!server) {
+      const error: SocketError = {
+        code: 404,
+        message: "Not found: server not found"
+      }
+
+      socket.emit('error', error);
+
+      return true;
+    } else if (!server.enableApi) {
+      const error: SocketError = {
+        code: 403,
+        message: "Forbidden: server has API disabled"
+      }
+
+      socket.emit('error', error);
+
+      return true;
+    }
+
+    const matchArray: Array<Promise<boolean>> = server.keys.map(key => {
+      return bcrypt.compare(apiKey, key);
+    })
+
+    const matchResults = await Promise.all(matchArray);
+    if (!matchResults.includes(true)) {
+      const error: SocketError = {
+        code: 401,
+        message: "Unauthorized: API key invalid."
+      };
+
+      socket.emit('error', error);
+
+      return true;
+    };
+    
+    return false;
+}
+
+export { registerConnection, authError };
