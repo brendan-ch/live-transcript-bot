@@ -1,7 +1,10 @@
 import Discord from 'discord.js';
+import bcrypt from 'bcrypt';
 import { Socket } from 'socket.io';
 
-import { LiveTranscriptConfig, LiveTranscriptData, LiveTranscriptDataEmit } from '../typedefs';
+import { LiveTranscriptConfig, LiveTranscriptData, LiveTranscriptDataEmit, SocketError } from '../typedefs';
+import { findServer } from './server';
+import { authError } from './registerSocket';
 
 const liveTranscripts: Array<LiveTranscript> = [];
 
@@ -34,6 +37,11 @@ class LiveTranscript {
    * Socket linked to the live transcript instance.
    */
   protected _socket: Socket | null;
+  
+  /**
+   * The API key of the socket accessing the transcript.
+   */
+  protected _socketKey: string | null;
 
   constructor(config: LiveTranscriptConfig) {
     this._dataArray = config.users.map(user => {
@@ -45,6 +53,7 @@ class LiveTranscript {
 
     this._message = null;
     this._socket = null;
+    this._socketKey = null;
     this._client = config.client;
     this._lastUpdate = new Date();
 
@@ -148,10 +157,11 @@ class LiveTranscript {
    * Add a socket to the live transcript instance. 
    * @param socket 
    */
-  addSocket(socket: Socket) {
+  addSocket(socket: Socket, apiKey: string) {
     console.log(`Registering socket ${socket.id} to live transcript`);
   
     this._socket = socket;
+    this._socketKey = apiKey;
   }
 
   /**
@@ -164,8 +174,16 @@ class LiveTranscript {
   /**
    * Emit a serialized version of the dataArray to the socket.
    */
-  emitSocket() {
-    if (this._socket) {
+  async emitSocket() {
+    if (this._socket && this._socketKey && this._message) {
+      // Check if authentication credentials are still valid
+      const err = await authError(this._socket, this._message.guild!.id, this._socketKey);
+      if (err) {
+        this._socket = null;
+        this._socketKey = null;
+        return;
+      };
+
       const simpleDataArray: Array<LiveTranscriptDataEmit> = this._dataArray.map(data => {
         return {
           transcript: data.transcript,
@@ -253,6 +271,8 @@ class LiveTranscript {
     }
 
     this._message = null;
+    this._socket = null;
+    this._socketKey = null;
     // this.messageExists = false;
   };
 }
