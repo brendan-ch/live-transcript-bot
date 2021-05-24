@@ -6,6 +6,10 @@ import fs from 'fs';
 import { ClientWithCommands, Command, ConnectionCommand } from './typedefs';
 import { handleConnection } from './helpers/stream';
 import { LiveTranscript } from './helpers/liveTranscript';
+import { registerConnection } from './registerSocket';
+
+registerConnection();
+
 const client: ClientWithCommands = new Discord.Client();
 
 client.commands = new Discord.Collection();
