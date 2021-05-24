@@ -2,3 +2,4 @@ node_modules
 dist
 .env
 stt-gcloud-key.json
+.vscode
