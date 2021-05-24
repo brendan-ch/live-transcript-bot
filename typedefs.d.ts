@@ -114,8 +114,19 @@ interface LiveTranscriptDataEmit {
   transcript: string
 }
 
+/**
+ * MongoDB: Instance of a server.
+ */
+interface IServer {
+  serverId: string,
+  prefix: string,
+  enableApi: boolean,
+  keys: Array<string>
+}
+
 export { 
   LiveTranscriptConfig,
+  IServer,
   LiveTranscriptData,
   LiveTranscriptDataEmit,
   ClientWithCommands, 
