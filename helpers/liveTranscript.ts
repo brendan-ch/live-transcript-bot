@@ -9,36 +9,63 @@ class LiveTranscript {
   /**
    * Live transcript data for each user.
    */
-  protected dataArray: Array<LiveTranscriptData>;
+  protected _dataArray: Array<LiveTranscriptData>;
 
   /**
    * Discord message instance that will be updated with the transcript data.
+   * If `null`, message has not been initiated, or message has been deleted.
    */
-  // @ts-ignore
-  protected message: Discord.Message;
-  protected messageExists: boolean;
-  protected client: Discord.User;
+  protected _message: Discord.Message | null;
+
+  /**
+   * The bot client.
+   */
+  protected _client: Discord.User;
+
+  /**
+   * Date the message was last updated.
+   */
+  protected _lastUpdate: Date;
 
   constructor(config: LiveTranscriptConfig) {
-    this.dataArray = config.users.map(user => {
+    this._dataArray = config.users.map(user => {
       return {
         user: user,
         transcript: ""
       }
     });
 
-    this.client = config.client;
-    this.messageExists = true;
+    this._message = null;
+    this._client = config.client;
+    this._lastUpdate = new Date();
 
-    this.initiate(config.channel);
+    const embed = new Discord.MessageEmbed({
+      title: "Live transcript",
+      description: this.refreshText()
+    });
+
+    config.channel.send(embed)
+      .then(message => {
+        this._message = message;
+      })
+      .catch(err => {
+        console.error(err);
+      })
   };
 
   /**
-   * Get data in the LiveTranscript instance.
+   * Data array representing live transcript data.
    */
-  getData() {
-    return this.dataArray;
+  get dataArray() {
+    return this._dataArray;
   };
+
+  /**
+   * Date the message was last updated.
+   */
+  get lastUpdate() {
+    return this._lastUpdate;
+  }
 
   /**
    * Update the transcript for a user.
@@ -46,10 +73,10 @@ class LiveTranscript {
    * @param transcript 
    */
   updateTranscript(user: Discord.User, transcript: string) {
-    const index = this.dataArray.findIndex(data => data.user.id === user.id);
+    const index = this._dataArray.findIndex(data => data.user.id === user.id);
 
     if (index !== -1) {
-      this.dataArray[index].transcript = transcript
+      this._dataArray[index].transcript = transcript
     } else {
       throw new Error("User doesn't exist in data array. Did you add the user using method addUser?");
     };
@@ -61,7 +88,7 @@ class LiveTranscript {
    * @param transcript 
    */
   addOrUpdateTranscript(user: Discord.User, transcript: string) {
-    const index = this.dataArray.findIndex(data => data.user.id === user.id);
+    const index = this._dataArray.findIndex(data => data.user.id === user.id);
 
     if (index !== -1) {
       this.updateTranscript(user, transcript);
@@ -78,10 +105,10 @@ class LiveTranscript {
    */
   addUser(user: Discord.User) {
     // check if user exists already
-    const index = this.dataArray.findIndex(data => data.user.id === user.id);
+    const index = this._dataArray.findIndex(data => data.user.id === user.id);
 
     if (index === -1) {
-      this.dataArray.push({
+      this._dataArray.push({
         user: user,
         transcript: ""
       });
@@ -96,23 +123,14 @@ class LiveTranscript {
    * @throws If user doesn't exist in array.
    */
   removeUser(user: Discord.User) {
-    const index = this.dataArray.findIndex(data => data.user.id === user.id);
+    const index = this._dataArray.findIndex(data => data.user.id === user.id);
 
     if (index !== -1) {
-      this.dataArray.splice(index, 1);
+      this._dataArray.splice(index, 1);
     } else {
       throw new Error("User doesn't exist in data array.");
     }
   }
-
-  /**
-   * Return text to be used in the message embed.
-   */
-  private refreshText() {
-    const text = this.dataArray.map(data => data.user.id !== this.client.id ? `**__${data.user.tag}__**\n${data.transcript}\n\n` : "").join('');
-
-    return text;
-  };
   
   /**
    * Create a message embed and store it in `this.message`.
@@ -123,9 +141,21 @@ class LiveTranscript {
       title: "Live transcript",
       description: this.refreshText()
     });
+    try {
+      this._message = await channel.send(embed);
+    } catch(err) {
+      console.error(err);
+    }
+    this._lastUpdate = new Date();
+  };
 
-    this.message = await channel.send(embed);
-    this.messageExists = true;
+  /**
+   * Return text to be used in the message embed.
+   */
+   private refreshText() {
+    const text = this._dataArray.map(data => data.user.id !== this._client.id ? `**__${data.user.tag}__**\n${data.transcript}\n\n` : "").join('');
+
+    return text;
   };
   
   /**
@@ -138,8 +168,10 @@ class LiveTranscript {
     });
 
     try {
-      if (this.messageExists) {
-        await this.message.edit(embed);
+      if (this._message) {
+        await this._message.edit(embed);
+
+        this._lastUpdate = new Date();
       }
     } catch(err) {
       throw new Error(err);
@@ -151,8 +183,12 @@ class LiveTranscript {
    * Class instance must be manually destroyed after calling this.
    */
   async destroy() {
-    await this.message.delete();
-    this.messageExists = false;
+    if (this._message) {
+      await this._message.delete();
+    }
+
+    this._message = null;
+    // this.messageExists = false;
   };
 }
 
