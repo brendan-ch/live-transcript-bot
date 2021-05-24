@@ -8,7 +8,7 @@ import { ClientWithCommands, ConnectionCommand } from './typedefs';
 import { handleConnection } from './helpers/stream';
 import { findServer } from './helpers/server';
 import { LiveTranscript } from './helpers/liveTranscript';
-import { registerConnection } from './registerSocket';
+import { registerConnection } from './helpers/registerSocket';
 
 registerConnection();
 
