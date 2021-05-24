@@ -14,7 +14,8 @@ const prefixCommand: Command = {
 
     // return current prefix
     if (args.length === 0) {
-      const server = await findServer(serverId)
+      const server = await findServer(serverId);
+      if (!server) return;
 
       const hasAdmin = message.member!.hasPermission('ADMINISTRATOR');
 
@@ -48,6 +49,8 @@ const prefixCommand: Command = {
 
     // guarenteed to return document
     findServer(serverId).then((server) => {
+      if (!server) return;
+
       server.prefix = args[0]  // set new prefix
       server.save();
 

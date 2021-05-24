@@ -13,6 +13,7 @@ const apiCommand: Command = {
     const arg = args.length > 0 ? args[0] : undefined;
 
     const server = await findServer(serverId);
+    if (!server) return;
 
     const embed = new Discord.MessageEmbed();
 

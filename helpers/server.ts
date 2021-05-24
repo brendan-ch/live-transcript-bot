@@ -6,7 +6,7 @@ const defaultPrefix = process.env.DEFAULT_PREFIX;
  * @param serverId 
  * @returns The server.
  */
-const findServer = async (serverId: string) => {
+const findServer = async (serverId: string, createNewIfNone = true) => {
   // returns null if no server
   const server = await Server.findOne({
     serverId: serverId
@@ -15,7 +15,7 @@ const findServer = async (serverId: string) => {
   if (server) {  // a server was found
     await server.save();
     return server;
-  } else {  // no server was found, create new document in database
+  } else if (createNewIfNone) {  // no server was found, create new document in database
     const newServer = new Server({
       serverId: serverId,
       prefix: defaultPrefix,
@@ -27,6 +27,8 @@ const findServer = async (serverId: string) => {
     await newServer.save();  // saves document for future
 
     return newServer;  // returns newly created server document
+  } else {
+    return undefined;
   };
 };
 
