@@ -1,6 +1,9 @@
 import Discord from 'discord.js';
+import { Socket } from 'socket.io';
 
-import { LiveTranscriptConfig, LiveTranscriptData } from '../typedefs';
+import { LiveTranscriptConfig, LiveTranscriptData, LiveTranscriptDataEmit } from '../typedefs';
+
+const liveTranscripts: Array<LiveTranscript> = [];
 
 /**
  * Class handling a live transcript message.
@@ -27,6 +30,11 @@ class LiveTranscript {
    */
   protected _lastUpdate: Date;
 
+  /**
+   * Socket linked to the live transcript instance.
+   */
+  protected _socket: Socket | null;
+
   constructor(config: LiveTranscriptConfig) {
     this._dataArray = config.users.map(user => {
       return {
@@ -36,6 +44,7 @@ class LiveTranscript {
     });
 
     this._message = null;
+    this._socket = null;
     this._client = config.client;
     this._lastUpdate = new Date();
 
@@ -68,6 +77,20 @@ class LiveTranscript {
   }
 
   /**
+   * Message containing the live transcript.
+   */
+  get message() {
+    return this._message;
+  }
+
+  /**
+   * Socket that is linked to the live transcript instance. 
+   */
+  get socket() {
+    return this._socket;
+  }
+
+  /**
    * Update the transcript for a user.
    * @param user 
    * @param transcript 
@@ -77,6 +100,8 @@ class LiveTranscript {
 
     if (index !== -1) {
       this._dataArray[index].transcript = transcript
+
+      this.emitSocket();
     } else {
       throw new Error("User doesn't exist in data array. Did you add the user using method addUser?");
     };
@@ -112,10 +137,50 @@ class LiveTranscript {
         user: user,
         transcript: ""
       });
+
+      this.emitSocket();
     } else {
       throw new Error("User already exists in data array.");
     }
   };
+
+  /**
+   * Add a socket to the live transcript instance. 
+   * @param socket 
+   */
+  addSocket(socket: Socket) {
+    console.log(`Registering socket ${socket.id} to live transcript`);
+  
+    this._socket = socket;
+  }
+
+  /**
+   * Clear the socket from the live transcript instance.
+   */
+  removeSocket() {
+    this._socket = null;
+  }
+
+  /**
+   * Emit a serialized version of the dataArray to the socket.
+   */
+  emitSocket() {
+    if (this._socket) {
+      const simpleDataArray: Array<LiveTranscriptDataEmit> = this._dataArray.map(data => {
+        return {
+          transcript: data.transcript,
+          user: {
+            id: data.user.id,
+            tag: data.user.tag
+          }
+        }
+      });
+
+      console.log(simpleDataArray);
+
+      this._socket.emit("transcript:update", simpleDataArray);
+    }
+  }
 
   /**
    * Remove a user from the data array.
@@ -192,4 +257,33 @@ class LiveTranscript {
   };
 }
 
-export { LiveTranscript };
+/**
+ * Add a live transcript to an array.
+ * @param liveTranscript 
+ */
+function addLiveTranscript(liveTranscript: LiveTranscript) {
+  liveTranscripts.push(liveTranscript);
+};
+
+/**
+ * Get all ongoing live transcripts.
+ */
+function getLiveTranscripts() {
+  return liveTranscripts;
+}
+
+/**
+ * Remove references to the live transcript with the specified server ID.
+ * @param serverId 
+ */
+function removeLiveTranscript(serverId: string) {
+  const index = liveTranscripts.findIndex(liveTranscript => liveTranscript.message ? liveTranscript.message.guild!.id : null);
+
+  if (index !== -1) {
+    liveTranscripts.splice(index, 1);
+  } else {
+    console.error("Live transcript doesn't exist in array.");
+  }
+}
+
+export { LiveTranscript, addLiveTranscript, getLiveTranscripts, removeLiveTranscript };
