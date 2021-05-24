@@ -103,9 +103,21 @@ interface LiveTranscriptConfig {
   channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel
 }
 
+/**
+ * Simplified version of `LiveTranscriptData` that is emitted to the socket.
+ */
+interface LiveTranscriptDataEmit {
+  user: {
+    id: string,
+    tag: string
+  },
+  transcript: string
+}
+
 export { 
   LiveTranscriptConfig,
   LiveTranscriptData,
+  LiveTranscriptDataEmit,
   ClientWithCommands, 
   Command, 
   ConnectionCommand, 
