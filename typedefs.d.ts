@@ -132,6 +132,14 @@ interface IServer {
   keys: Array<string>
 }
 
+/**
+ * Error message emitted to the socket.
+ */
+interface SocketError {
+  code: number,
+  message: string
+}
+
 export { 
   LiveTranscriptConfig,
   IServer,
@@ -141,5 +149,6 @@ export {
   Command, 
   ConnectionCommand, 
   ConnectionWrapper, 
-  StreamWrapper 
+  StreamWrapper,
+  SocketError
 };
