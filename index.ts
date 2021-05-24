@@ -3,8 +3,10 @@ dotenv.config();
 
 import Discord from 'discord.js';
 import fs from 'fs';
-import { ClientWithCommands, Command, ConnectionCommand } from './typedefs';
+import mongoose from 'mongoose';
+import { ClientWithCommands, ConnectionCommand } from './typedefs';
 import { handleConnection } from './helpers/stream';
+import { findServer } from './helpers/server';
 import { LiveTranscript } from './helpers/liveTranscript';
 import { registerConnection } from './registerSocket';
 
@@ -13,6 +15,13 @@ registerConnection();
 const client: ClientWithCommands = new Discord.Client();
 
 client.commands = new Discord.Collection();
+
+const dbString = process.env.MONGODB_STRING;
+if (!dbString) {
+  console.error("No DB string found.");
+  process.exit(1);
+};
+mongoose.connect(dbString);
 
 async function getConnectionCommands() {
   const commands: Array<ConnectionCommand> = [];
@@ -53,7 +62,10 @@ client.on('message', async function(message) {
     process.exit(1);
   };
 
-  const prefix = process.env.DEFAULT_PREFIX;
+  const serverId = message.guild ? message.guild.id : undefined;
+  const server = serverId ? await findServer(serverId) : undefined;
+  const prefix = server ? server.prefix : process.env.DEFAULT_PREFIX;
+
   if (!prefix) {
     console.error("No prefix specified.");
     process.exit(1);
@@ -68,20 +80,34 @@ client.on('message', async function(message) {
   if (!client.commands || !commandName) return;
 
   const command = client.commands.get(commandName.toLowerCase());
+  
+
+  if (
+    (server && command?.adminOnly && message.member && !message.member.hasPermission('ADMINISTRATOR'))
+  || !server
+  ) {
+    console.log("Error: check failed. Command was not executed.");
+
+    return;
+  };
 
   // retrieve the command and run execute method on it
   if (command) {
-    const response = await command.execute(message, args);
+    try {
+      const response = await command.execute(message, args);
 
-    if (response && response.connection && response.channel) {
-      // create new LiveTranscript instance
-      const liveTranscript = new LiveTranscript({
-        channel: response.channel,
-        users: response.connection.channel.members.array().map(member => member.user),
-        client: client.user
-      });
+      if (response && response.connection && response.channel) {
+        // create new LiveTranscript instance
+        const liveTranscript = new LiveTranscript({
+          channel: response.channel,
+          users: response.connection.channel.members.array().map(member => member.user),
+          client: client.user
+        });
 
-      handleConnection(response.connection, liveTranscript);
+        handleConnection(response.connection, liveTranscript);
+      }
+    } catch(err) {
+      console.error(err);
     }
   };
 })
