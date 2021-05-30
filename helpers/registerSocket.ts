@@ -18,7 +18,7 @@ function registerSocket(socket: Socket) {
         code: 400,
         error: "Bad request: no API key or server ID specified."
       };
-      socket.emit('error', error);
+      socket.emit('transcript:error', error);
 
       return;
     }
@@ -36,7 +36,7 @@ function registerSocket(socket: Socket) {
         error: "Not found: no active transcript instance linked to this server"
       };
 
-      socket.emit('error', error);
+      socket.emit('transcript:error', error);
     }
 
     console.log(`Socket ${socket.id} subscribing to updates from server ${serverId}`);
@@ -82,7 +82,7 @@ async function authError(socket: Socket, serverId: string, apiKey: string) {
         error: "Forbidden: server has API disabled"
       }
 
-      socket.emit('error', error);
+      socket.emit('transcript:error', error);
 
       return true;
     }
@@ -98,7 +98,7 @@ async function authError(socket: Socket, serverId: string, apiKey: string) {
         error: "Unauthorized: API key invalid."
       };
 
-      socket.emit('error', error);
+      socket.emit('transcript:error', error);
 
       return true;
     };
