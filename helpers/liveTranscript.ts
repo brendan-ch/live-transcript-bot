@@ -45,7 +45,8 @@ class LiveTranscript {
     this._dataArray = config.users.map(user => {
       return {
         user: user,
-        transcript: ""
+        transcript: "",
+        lastUpdate: new Date()
       }
     });
 
@@ -107,6 +108,7 @@ class LiveTranscript {
 
     if (index !== -1) {
       this._dataArray[index].transcript = transcript
+      this._dataArray[index].lastUpdate = new Date();
 
       this.emitSocket();
     } else {
@@ -142,7 +144,8 @@ class LiveTranscript {
     if (index === -1) {
       this._dataArray.push({
         user: user,
-        transcript: ""
+        transcript: "",
+        lastUpdate: new Date()
       });
 
       this.emitSocket();
@@ -203,7 +206,8 @@ class LiveTranscript {
           user: {
             id: data.user.id,
             tag: data.user.tag
-          }
+          },
+          timestamp: data.lastUpdate.getTime()
         }
       });
 
@@ -211,8 +215,6 @@ class LiveTranscript {
         data: simpleDataArray,
         code: 200
       }
-
-      console.log(simpleDataArray);
 
       this._socket.emit("transcript:update", socketEmit);
     }

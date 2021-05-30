@@ -99,7 +99,8 @@ interface ConnectionWrapper {
  */
 interface LiveTranscriptData {
   user: Discord.User,
-  transcript: string
+  transcript: string,
+  lastUpdate: Date
 };
 
 /**
@@ -119,7 +120,11 @@ interface LiveTranscriptDataEmit {
     id: string,
     tag: string
   },
-  transcript: string
+  transcript: string,
+  /**
+   * Date in milliseconds.
+   */
+  timestamp: number
 }
 
 /**
