@@ -1,15 +1,16 @@
 // Helper file for handling user's audio streams.
 import Discord from 'discord.js';
-import fs from 'fs';
 
 import gSpeech from '@google-cloud/speech';
-import { LiveTranscript } from './liveTranscript';
+import { LiveTranscript, addLiveTranscript, removeLiveTranscript } from './liveTranscript';
 const speech = gSpeech.v1p1beta1;
 const speechClient = new speech.SpeechClient({
   keyFilename: 'stt-gcloud-key.json'
 });
 
 function handleConnection(connection: Discord.VoiceConnection, liveTranscript: LiveTranscript) {
+  addLiveTranscript(liveTranscript);
+
   const promise = new Promise(function(resolve, reject) {
     connection.on('speaking', function(user, speaking) {
       if (speaking.bitfield === 0 || user.bot) {
@@ -42,12 +43,10 @@ function handleConnection(connection: Discord.VoiceConnection, liveTranscript: L
             if (transcript) {
               console.log(`${user.tag}: ${transcript}`);
 
-              try {
-                liveTranscript.addOrUpdateTranscript(user, transcript);
-                liveTranscript.refresh();
-              } catch(err) {
-                console.error(err);
-              }
+              handleTranscript(user, transcript, liveTranscript)
+                .catch(err => {
+                  console.error(err);
+                })
               
             }
             
@@ -66,6 +65,8 @@ function handleConnection(connection: Discord.VoiceConnection, liveTranscript: L
 
       liveTranscript.destroy();
 
+      removeLiveTranscript(connection.channel.guild.id);
+
       resolve('Disconnected from VC');
       if (err) console.error(err);
     });
@@ -73,6 +74,34 @@ function handleConnection(connection: Discord.VoiceConnection, liveTranscript: L
 
   return promise;
 };
+
+/**
+ * Handle transcript updates.
+ * @param user 
+ * @param transcript 
+ * @param liveTranscript 
+ */
+ async function handleTranscript(
+  user: Discord.User, 
+  transcript: string, 
+  liveTranscript: LiveTranscript
+) {
+  // TO-DO: Add socket event for transcript updates (public API)
+
+  // update the message
+  try {
+    liveTranscript.addOrUpdateTranscript(user, transcript);
+    
+    // delay for message updates (affects how often message is updated)
+    const delay = process.env.MESSAGE_DELAY ? Number(process.env.MESSAGE_DELAY) : undefined;
+
+    if (liveTranscript.lastUpdate.getTime() > (delay && !isNaN(delay) ? delay : 1000)) {
+      liveTranscript.refresh();
+    }
+  } catch(err) {
+    throw new Error(err);
+  }
+}
 
 // async function transcribeFileStream(userId: string) {
 //   const config = {

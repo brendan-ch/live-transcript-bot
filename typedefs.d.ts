@@ -18,6 +18,10 @@ interface Command {
    */
   name: string,
   /**
+   * Whether the command is admin only.
+   */
+  adminOnly?: boolean,
+  /**
    * Alternative ways the user can call the command.
    */
   aliases?: Array<string>,
@@ -34,7 +38,7 @@ interface Command {
    * @param message 
    * @param args 
    */
-  execute(message: MessageWithCommands, args: Array<string>): Promise<undefined>,
+  execute(message: MessageWithCommands, args: Array<string>): Promise<void>,
 };
 
 /**
@@ -47,6 +51,10 @@ interface Command {
    * The name of the command. `execute` property is run when command name is called.
    */
   name: string,
+  /**
+   * Whether the command is admin only.
+   */
+  adminOnly?: boolean,
   /**
    * Alternative ways the user can call the command.
    */
@@ -91,7 +99,8 @@ interface ConnectionWrapper {
  */
 interface LiveTranscriptData {
   user: Discord.User,
-  transcript: string
+  transcript: string,
+  lastUpdate: Date
 };
 
 /**
@@ -103,12 +112,62 @@ interface LiveTranscriptConfig {
   channel: Discord.TextChannel | Discord.DMChannel | Discord.NewsChannel
 }
 
+/**
+ * Simplified version of `LiveTranscriptData` that is emitted to the socket.
+ */
+interface LiveTranscriptDataEmit {
+  user: {
+    id: string,
+    tag: string
+  },
+  transcript: string,
+  /**
+   * Date in milliseconds.
+   */
+  timestamp: number
+}
+
+/**
+ * MongoDB: Instance of a server.
+ */
+interface IServer {
+  serverId: string,
+  prefix: string,
+  enableApi: boolean,
+  keys: Array<string>
+}
+
+/**
+ * Message emitted to the socket.
+ */
+interface SocketMessage {
+  code: number,
+  error?: string
+}
+
+/**
+ * Message containing data emitted to the socket.
+ */
+interface SocketMessageTranscript extends SocketMessage {
+  data: Array<{
+    user: {
+      id: string,
+      tag: string
+    },
+    transcript: string
+  }>
+};
+
 export { 
   LiveTranscriptConfig,
+  IServer,
   LiveTranscriptData,
+  LiveTranscriptDataEmit,
   ClientWithCommands, 
   Command, 
   ConnectionCommand, 
   ConnectionWrapper, 
-  StreamWrapper 
+  StreamWrapper,
+  SocketMessage,
+  SocketMessageTranscript
 };
