@@ -1,7 +1,7 @@
 import Discord from 'discord.js';
 import { Socket } from 'socket.io';
 
-import { LiveTranscriptConfig, LiveTranscriptData, LiveTranscriptDataEmit, SocketMessageTranscript } from '../typedefs';
+import { LiveTranscriptConfig, LiveTranscriptData, LiveTranscriptDataEmit, SocketMessage, SocketMessageTranscript } from '../typedefs';
 import { authError } from './registerSocket';
 
 const liveTranscripts: Array<LiveTranscript> = [];
@@ -271,6 +271,16 @@ class LiveTranscript {
    * Class instance must be manually destroyed after calling this.
    */
   async destroy() {
+    // alert socket that they've been disconnected
+    if (this._socket) {
+      const message: SocketMessage = {
+        code: 404,
+        error: "Socket disconnected."
+      }
+
+      this._socket.emit('transcript:error', message);
+    }
+    
     if (this._message) {
       await this._message.delete();
     }
