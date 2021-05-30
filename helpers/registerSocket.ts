@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import { Server, Socket } from 'socket.io';
 import { getLiveTranscripts } from './liveTranscript';
 import { findServer } from './server';
-import { SocketError } from '../typedefs';
+import { SocketMessage, SocketMessageTranscript } from '../typedefs';
 
 const io = new Server();
 
@@ -14,9 +14,9 @@ const io = new Server();
 function registerSocket(socket: Socket) {
   socket.on('transcript:subscribe', async function(serverId?: string, apiKey?: string) {
     if (!serverId || !apiKey) {
-      const error: SocketError = {
+      const error: SocketMessage = {
         code: 400,
-        message: "Bad request: no API key or server ID specified."
+        error: "Bad request: no API key or server ID specified."
       };
       socket.emit('error', error);
 
@@ -31,9 +31,9 @@ function registerSocket(socket: Socket) {
     );
 
     if (!liveTranscript) {
-      const error: SocketError = {
+      const error: SocketMessage = {
         code: 404,
-        message: "Not found: no active transcript instance linked to this server"
+        error: "Not found: no active transcript instance linked to this server"
       };
 
       socket.emit('error', error);
@@ -68,18 +68,18 @@ function registerConnection() {
 async function authError(socket: Socket, serverId: string, apiKey: string) {
   const server = await findServer(serverId, false);
     if (!server) {
-      const error: SocketError = {
+      const error: SocketMessage = {
         code: 404,
-        message: "Not found: server not found"
+        error: "Not found: server not found"
       }
 
       socket.emit('error', error);
 
       return true;
     } else if (!server.enableApi) {
-      const error: SocketError = {
+      const error: SocketMessage = {
         code: 403,
-        message: "Forbidden: server has API disabled"
+        error: "Forbidden: server has API disabled"
       }
 
       socket.emit('error', error);
@@ -93,9 +93,9 @@ async function authError(socket: Socket, serverId: string, apiKey: string) {
 
     const matchResults = await Promise.all(matchArray);
     if (!matchResults.includes(true)) {
-      const error: SocketError = {
+      const error: SocketMessage = {
         code: 401,
-        message: "Unauthorized: API key invalid."
+        error: "Unauthorized: API key invalid."
       };
 
       socket.emit('error', error);

@@ -1,9 +1,7 @@
 import Discord from 'discord.js';
-import bcrypt from 'bcrypt';
 import { Socket } from 'socket.io';
 
-import { LiveTranscriptConfig, LiveTranscriptData, LiveTranscriptDataEmit, SocketError } from '../typedefs';
-import { findServer } from './server';
+import { LiveTranscriptConfig, LiveTranscriptData, LiveTranscriptDataEmit, SocketMessageTranscript } from '../typedefs';
 import { authError } from './registerSocket';
 
 const liveTranscripts: Array<LiveTranscript> = [];
@@ -154,6 +152,21 @@ class LiveTranscript {
   };
 
   /**
+   * Remove a user from the data array.
+   * @param user 
+   * @throws If user doesn't exist in array.
+   */
+   removeUser(user: Discord.User) {
+    const index = this._dataArray.findIndex(data => data.user.id === user.id);
+
+    if (index !== -1) {
+      this._dataArray.splice(index, 1);
+    } else {
+      throw new Error("User doesn't exist in data array.");
+    }
+  }
+
+  /**
    * Add a socket to the live transcript instance. 
    * @param socket 
    */
@@ -169,18 +182,18 @@ class LiveTranscript {
    */
   removeSocket() {
     this._socket = null;
+    this._socketKey = null;
   }
 
   /**
    * Emit a serialized version of the dataArray to the socket.
    */
-  async emitSocket() {
+  private async emitSocket() {
     if (this._socket && this._socketKey && this._message) {
       // Check if authentication credentials are still valid
       const err = await authError(this._socket, this._message.guild!.id, this._socketKey);
       if (err) {
-        this._socket = null;
-        this._socketKey = null;
+        this.removeSocket();
         return;
       };
 
@@ -194,24 +207,14 @@ class LiveTranscript {
         }
       });
 
+      const socketEmit: SocketMessageTranscript = {
+        data: simpleDataArray,
+        code: 200
+      }
+
       console.log(simpleDataArray);
 
-      this._socket.emit("transcript:update", simpleDataArray);
-    }
-  }
-
-  /**
-   * Remove a user from the data array.
-   * @param user 
-   * @throws If user doesn't exist in array.
-   */
-  removeUser(user: Discord.User) {
-    const index = this._dataArray.findIndex(data => data.user.id === user.id);
-
-    if (index !== -1) {
-      this._dataArray.splice(index, 1);
-    } else {
-      throw new Error("User doesn't exist in data array.");
+      this._socket.emit("transcript:update", socketEmit);
     }
   }
   

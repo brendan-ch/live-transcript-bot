@@ -133,12 +133,25 @@ interface IServer {
 }
 
 /**
- * Error message emitted to the socket.
+ * Message emitted to the socket.
  */
-interface SocketError {
+interface SocketMessage {
   code: number,
-  message: string
+  error?: string
 }
+
+/**
+ * Message containing data emitted to the socket.
+ */
+interface SocketMessageTranscript extends SocketMessage {
+  data: Array<{
+    user: {
+      id: string,
+      tag: string
+    },
+    transcript: string
+  }>
+};
 
 export { 
   LiveTranscriptConfig,
@@ -150,5 +163,6 @@ export {
   ConnectionCommand, 
   ConnectionWrapper, 
   StreamWrapper,
-  SocketError
+  SocketMessage,
+  SocketMessageTranscript
 };
