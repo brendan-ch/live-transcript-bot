@@ -50,13 +50,20 @@ const apiCommand: Command = {
         const key = randomString(32, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
 
         const hash = await bcrypt.hash(key, 10);
-        server.keys.push(hash);
-        server.save();
         
         embed.title = "Key generated";
-        embed.description = `Here is your API key: ||${key}||\n\nMake sure to save it in a secure place; it cannot be retrieved after it is generated.`
+        embed.description = `Here is your API key for server ${message.guild!.name}: ||${key}||\n\nMake sure to save it in a secure place; it cannot be retrieved after it is generated.`
 
-        message.channel.send(embed);
+        message.author.send(embed)
+          .then(() => {
+            server.keys.push(hash);
+            server.save();
+          })
+          .catch(err => {
+            console.error(err);
+
+            message.channel.send("Unable to send message. Do you have DMs enabled?");
+          })
 
         break;
 
